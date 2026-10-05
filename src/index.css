@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+:root {
+  font-family: 'Inter', 'Roboto', sans-serif;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 m-0 p-0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Score counter animation */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.4s ease-out forwards;
+}
+
+/* Staggered checklist items */
+.checklist-stagger {
+  opacity: 0;
+  animation: fadeSlideUp 0.35s ease-out forwards;
+}
+
+/* Pulse animation for active pipeline step */
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1s ease-in-out infinite;
+}
+
+/* Connectivity badge pulse */
+@keyframes beacon {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-beacon {
+  animation: beacon 2s ease-in-out infinite;
+}
+
+/* Camera reticle bracket pulse */
+@keyframes reticle-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+.animate-reticle {
+  animation: reticle-pulse 2s ease-in-out infinite;
+}
+
+/* Monospace for evidence data */
+.font-mono-evidence {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Hide scrollbar but allow scroll */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Smooth tab transitions */
+.tab-transition {
+  transition: all 0.2s ease-in-out;
+}

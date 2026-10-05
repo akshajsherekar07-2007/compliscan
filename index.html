@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#020617" />
+    <meta name="description" content="CompliScan — AI-Powered Edge Legal Metrology Compliance Scanner (100% Offline)" />
+    
+    <!-- PWA & Mobile Web App Meta -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CompliScan" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    
+    <title>CompliScan | Legal Metrology Scanner</title>
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  </head>
+  <body class="bg-slate-950 text-slate-100 select-none">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Register PWA Service Worker for offline capability
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(
+            (reg) => console.log('CompliScan PWA: Service Worker active', reg.scope),
+            (err) => console.warn('CompliScan PWA: Service Worker error', err)
+          );
+        });
+      }
+    </script>
+  </body>
+</html>

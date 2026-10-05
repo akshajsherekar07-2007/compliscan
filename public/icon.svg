@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- App Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="#1e293b" stroke-width="8"/>
+  
+  <!-- Outer Scanner Reticles -->
+  <path d="M 96 160 L 96 112 A 16 16 0 0 1 112 96 L 160 96" fill="none" stroke="url(#emerald)" stroke-width="20" stroke-linecap="round"/>
+  <path d="M 352 96 L 400 96 A 16 16 0 0 1 416 112 L 416 160" fill="none" stroke="url(#emerald)" stroke-width="20" stroke-linecap="round"/>
+  <path d="M 96 352 L 96 400 A 16 16 0 0 0 112 416 L 160 416" fill="none" stroke="url(#emerald)" stroke-width="20" stroke-linecap="round"/>
+  <path d="M 352 416 L 400 416 A 16 16 0 0 0 416 400 L 416 352" fill="none" stroke="url(#emerald)" stroke-width="20" stroke-linecap="round"/>
+  
+  <!-- Central Shield of Verification -->
+  <path d="M 256 144 L 340 184 C 340 272 256 348 256 348 C 256 348 172 272 172 184 Z" fill="url(#accent)" opacity="0.9"/>
+  
+  <!-- Checkmark / Scales icon inside shield -->
+  <path d="M 216 244 L 244 272 L 300 216" fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Horizontal Laser Scan Line -->
+  <line x1="120" y1="256" x2="392" y2="256" stroke="#34d399" stroke-width="6" stroke-linecap="round" stroke-dasharray="16 8"/>
+</svg>
