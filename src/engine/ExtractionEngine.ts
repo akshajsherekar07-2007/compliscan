@@ -303,10 +303,10 @@ export function extractFields(rawText: string, textBlocks: TextBlock[]): Extract
   // e.g., the top of a jar just prints "08/2026  02/2027" or "15 JUL 2024  14 NOV 2024"
   if (!manufacturingDate) {
     const standaloneDateMatches = [
-      ...processed.matchAll(/\b([0-3]?\d\s*[\.\/-]\s*[01]?\d\s*[\.\/-]\s*[12]\d{3})\b/g),
-      ...processed.matchAll(/\b([0-3]?\d\s+[A-Za-z]{3}\s+[12]\d{3})\b/g),
-      ...processed.matchAll(/\b([01]?\d[\/\-][12]\d{3})\b/g),
-      ...processed.matchAll(/\b([A-Za-z]{3}[\s\/\-]*[12]\d{3})\b/g)
+      ...processed.matchAll(/\b([0-3]?\d\s*[\.\/-]\s*[01]?\d\s*[\.\/-]\s*(?:[12]\d{3}|\d{2}))\b/g),
+      ...processed.matchAll(/\b([0-3]?\d\s+[A-Za-z]{3}\s+(?:[12]\d{3}|\d{2}))\b/g),
+      ...processed.matchAll(/\b([01]?\d[\/\-](?:[12]\d{3}|\d{2}))\b/g),
+      ...processed.matchAll(/\b([A-Za-z]{3}[\s\/\-]*(?:[12]\d{3}|\d{2}))\b/g)
     ];
     if (standaloneDateMatches.length >= 1) {
       let cleanMfg = standaloneDateMatches[0][1].trim().replace(/\s*([\.\/-])\s*/g, '$1');
@@ -341,10 +341,10 @@ export function extractFields(rawText: string, textBlocks: TextBlock[]): Extract
   // Standalone expiry date fallback: if mfg date was found and there is a SECOND standalone date, treat as expiry
   if (!expiryDate) {
     const standaloneDateMatchesExp = [
-      ...processed.matchAll(/\b([0-3]?\d\s*[\.\/-]\s*[01]?\d\s*[\.\/-]\s*[12]\d{3})\b/g),
-      ...processed.matchAll(/\b([0-3]?\d\s+[A-Za-z]{3}\s+[12]\d{3})\b/g),
-      ...processed.matchAll(/\b([01]?\d[\/\-][12]\d{3})\b/g),
-      ...processed.matchAll(/\b([A-Za-z]{3}[\s\/\-]*[12]\d{3})\b/g)
+      ...processed.matchAll(/\b([0-3]?\d\s*[\.\/-]\s*[01]?\d\s*[\.\/-]\s*(?:[12]\d{3}|\d{2}))\b/g),
+      ...processed.matchAll(/\b([0-3]?\d\s+[A-Za-z]{3}\s+(?:[12]\d{3}|\d{2}))\b/g),
+      ...processed.matchAll(/\b([01]?\d[\/\-](?:[12]\d{3}|\d{2}))\b/g),
+      ...processed.matchAll(/\b([A-Za-z]{3}[\s\/\-]*(?:[12]\d{3}|\d{2}))\b/g)
     ];
     if (standaloneDateMatchesExp.length >= 2) {
       let cleanExp = standaloneDateMatchesExp[1][1].trim().replace(/\s*([\.\/-])\s*/g, '$1');
@@ -400,6 +400,37 @@ export function extractFields(rawText: string, textBlocks: TextBlock[]): Extract
       };
     }
   }
+
+  // Bare MRP+USP fallback: "40.00(₹0.24/ml)"
+  if (!unitSalePrice) {
+    const bareMrpUspMatch = processed.match(/(?:[₹XxRs.]\s*)?(\d{1,4}(?:\.\d{2})?)\s*\(\s*(?:[₹XxRs.]\s*)?(\d{1,4}(?:\.\d{1,4})?)\s*(?:\/|per)\s*(\d{1,4}\s*)?(g|gm|kg|ml|l|L|pc)\s*\)/i);
+    if (bareMrpUspMatch) {
+      const parsedMrp = parseFloat(bareMrpUspMatch[1]);
+      const parsedUsp = parseFloat(bareMrpUspMatch[2]);
+      let perUnit = (bareMrpUspMatch[3] ? bareMrpUspMatch[3].trim() + ' ' : '') + bareMrpUspMatch[4].toLowerCase();
+      if (perUnit === 'gm') perUnit = 'g';
+      
+      if (!isNaN(parsedMrp) && parsedMrp > 0) {
+        mrpCandidates.push({
+          value: parsedMrp,
+          raw: bareMrpUspMatch[0].trim(),
+          index: bareMrpUspMatch.index || 0,
+          confidence: 0.90
+        });
+      }
+      
+      if (!isNaN(parsedUsp) && parsedUsp > 0) {
+        unitSalePrice = {
+          value: parsedUsp,
+          perUnit,
+          raw: bareMrpUspMatch[0].trim(),
+          confidence: 0.90,
+          boundingBox: { x: 120, y: 140, width: 80, height: 14 }
+        };
+      }
+    }
+  }
+
 
   // Pattern A: Robust MRP Parser
   // Matches "MRP ₹ 20", "MRP Rs. 10/-", "MRP: 40", "MRP ₹ : 50.00", "MRP (INCL. OF ALL TAXES) : Rs. 25", "M R P : 30/-"
