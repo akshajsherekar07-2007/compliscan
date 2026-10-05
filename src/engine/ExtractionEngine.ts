@@ -278,17 +278,44 @@ export function extractFields(rawText: string, textBlocks: TextBlock[]): Extract
   const mfgMatch = processed.match(/(?:Date\s*of\s*(?:Manufacture|Pkg|Packing|Packaging)|MFG\s*DATE|MFD(?!\s*&|\s*by)|Mfd(?!\s*&|\s*by)|Pkd\s*on|Packed\s*on|Manufactured\s*on|Manufactured\s*date)[\s:.\/©®P\-]*([0-3]?\d\s+[A-Za-z]{3,4}\s+\d{2,4}|[0-3]?\d\s*[\.\/\-]\s*[01]?\d\s*[\.\/\-]\s*[120]\d{2,4}|[A-Za-z]{3,4}[\s\/\-.:]*\d{2,4}|[01]?\d[\/\-\.][12]\d{3}|[01]?\d[\/\-\.]\d{2})/i)
     || processed.match(/(?:DATE\s*OF\s*MANUFACTURE|DATE\s*OF\s*PACKAGING|MFG\s*DATE|MFD)[^A-Za-z0-9]*([A-Za-z0-9\/\-\.\s]{3,14})/i)
     || processed.match(/(?:MFD\s*[\.\-]\s*USE\s*BY)/i);
+
+  // Cross-Reference Detection: "See top/bottom/side/back/flap"
+  // Many Indian products print "Date of Manufacture, Use By Date: See top of pack"
+  // on one panel and the actual values on another panel WITHOUT repeating the keywords.
+  const hasSeeTopBottomRef = /(?:see|refer|printed\s*on|mentioned\s*on|given\s*on|check)\s*(?:the\s*)?(?:top|bottom|side|back|front|flap|lid|cap|base|rim|panel|seal|pack|pouch|wrapper|crimp)/i.test(processed);
+
   let manufacturingDate: ExtractedFields['manufacturingDate'] = null;
   if (mfgMatch) {
     let cleanMfg = (mfgMatch[1] || mfgMatch[0]).trim();
-    cleanMfg = cleanMfg.replace(/(\d{4})[^\d\s]+$/, '$1');
-    // Normalize spaces around date punctuation e.g. "10.07. 2024" -> "10.07.2024"
-    cleanMfg = cleanMfg.replace(/\s*([.\/\-])\s*/g, '$1');
-    manufacturingDate = {
-      value: cleanMfg,
-      raw: mfgMatch[0].trim(),
-      confidence: 0.92
-    };
+    // Reject if the captured value is just "See top" / "See bottom" (cross-reference, not actual date)
+    if (!/^\s*(?:see|refer|printed|mentioned|given|check|top|bottom|side|back|front|flap)/i.test(cleanMfg)) {
+      cleanMfg = cleanMfg.replace(/(\d{4})[^\d\s]+$/, '$1');
+      cleanMfg = cleanMfg.replace(/\s*([\.\/-])\s*/g, '$1');
+      manufacturingDate = {
+        value: cleanMfg,
+        raw: mfgMatch[0].trim(),
+        confidence: 0.92
+      };
+    }
+  }
+
+  // Standalone date fallback for top/bottom/crimp panels where only raw dates are printed without keywords
+  // e.g., the top of a jar just prints "08/2026  02/2027" or "15 JUL 2024  14 NOV 2024"
+  if (!manufacturingDate) {
+    const standaloneDateMatches = [
+      ...processed.matchAll(/\b([0-3]?\d\s*[\.\/-]\s*[01]?\d\s*[\.\/-]\s*[12]\d{3})\b/g),
+      ...processed.matchAll(/\b([0-3]?\d\s+[A-Za-z]{3}\s+[12]\d{3})\b/g),
+      ...processed.matchAll(/\b([01]?\d[\/\-][12]\d{3})\b/g),
+      ...processed.matchAll(/\b([A-Za-z]{3}[\s\/\-]*[12]\d{3})\b/g)
+    ];
+    if (standaloneDateMatches.length >= 1) {
+      let cleanMfg = standaloneDateMatches[0][1].trim().replace(/\s*([\.\/-])\s*/g, '$1');
+      manufacturingDate = {
+        value: cleanMfg,
+        raw: standaloneDateMatches[0][0].trim(),
+        confidence: 0.55  // Lower confidence — standalone date without keyword
+      };
+    }
   }
 
   // ── 6. Best Before / Use By Date (Rule 6(1)(da)) ──────────────────
@@ -299,14 +326,44 @@ export function extractFields(rawText: string, textBlocks: TextBlock[]): Extract
   let expiryDate: ExtractedFields['expiryDate'] = null;
   if (expMatch) {
     let cleanExp = (expMatch[1] || expMatch[0]).trim();
-    cleanExp = cleanExp.replace(/(\d{4})[^\d\s]+$/, '$1');
-    // Normalize spaces around date punctuation e.g. "10.07. 2025" -> "10.07.2025"
-    cleanExp = cleanExp.replace(/\s*([.\/\-])\s*/g, '$1');
-    expiryDate = {
-      value: cleanExp,
-      raw: expMatch[0].trim(),
-      confidence: 0.92
-    };
+    // Reject if the captured value is just "See top" / "See bottom"
+    if (!/^\s*(?:see|refer|printed|mentioned|given|check|top|bottom|side|back|front|flap)/i.test(cleanExp)) {
+      cleanExp = cleanExp.replace(/(\d{4})[^\d\s]+$/, '$1');
+      cleanExp = cleanExp.replace(/\s*([\.\/-])\s*/g, '$1');
+      expiryDate = {
+        value: cleanExp,
+        raw: expMatch[0].trim(),
+        confidence: 0.92
+      };
+    }
+  }
+
+  // Standalone expiry date fallback: if mfg date was found and there is a SECOND standalone date, treat as expiry
+  if (!expiryDate) {
+    const standaloneDateMatchesExp = [
+      ...processed.matchAll(/\b([0-3]?\d\s*[\.\/-]\s*[01]?\d\s*[\.\/-]\s*[12]\d{3})\b/g),
+      ...processed.matchAll(/\b([0-3]?\d\s+[A-Za-z]{3}\s+[12]\d{3})\b/g),
+      ...processed.matchAll(/\b([01]?\d[\/\-][12]\d{3})\b/g),
+      ...processed.matchAll(/\b([A-Za-z]{3}[\s\/\-]*[12]\d{3})\b/g)
+    ];
+    if (standaloneDateMatchesExp.length >= 2) {
+      let cleanExp = standaloneDateMatchesExp[1][1].trim().replace(/\s*([\.\/-])\s*/g, '$1');
+      expiryDate = {
+        value: cleanExp,
+        raw: standaloneDateMatchesExp[1][0].trim(),
+        confidence: 0.50
+      };
+    }
+    else if (standaloneDateMatchesExp.length === 1 && manufacturingDate && (manufacturingDate.confidence ?? 0) >= 0.90) {
+      let cleanExp = standaloneDateMatchesExp[0][1].trim().replace(/\s*([\.\/-])\s*/g, '$1');
+      if (cleanExp !== manufacturingDate.value) {
+        expiryDate = {
+          value: cleanExp,
+          raw: standaloneDateMatchesExp[0][0].trim(),
+          confidence: 0.45
+        };
+      }
+    }
   }
 
   // ── 7. Maximum Retail Price (MRP) & 8. Unit Sale Price (USP) ───────
